@@ -34,8 +34,8 @@ W1   W2     W3       <- Spark Workers (executors)
 - **Spark Master** — manages the cluster, distributes tasks to workers
 - **Spark Workers** — execute tasks and return results to the driver
 - **JupyterLab** — acts as the Spark driver; PySpark code runs here and jobs are submitted to the cluster
-- **data/raw/** — input CSV files (not tracked in git)
-- **data/processed/** — Parquet output after pipeline execution (not tracked in git)
+- **data/raw/** — input CSV files
+- **data/processed/** — Parquet output after pipeline execution
 
 ---
 
@@ -84,11 +84,30 @@ Expected: 5 containers up — `spark-master`, `spark-worker-1/2/3`, `jupyter`.
 | Worker 2 | http://localhost:8082 |
 | Worker 3 | http://localhost:8083 |
 
-**4. Run the notebook**
+**4. Connect the notebook to the Jupyter kernel**
 
-Open JupyterLab → `work/` → `01_pyspark_data_processing.ipynb` → Run All.
+**Option A — directly in the browser (JupyterLab)**
 
-**5. Stop the cluster**
+1. Open [http://localhost:8888](http://localhost:8888)
+2. In the file browser on the left, open `work/`
+3. Double-click `01_pyspark_data_processing.ipynb`
+4. The kernel **Python 3 (ipykernel)** starts automatically — no extra steps needed
+
+**Option B — from VS Code**
+
+1. Open `notebooks/01_pyspark_data_processing.ipynb` in VS Code
+2. Click **Select Kernel** in the top-right corner of the notebook
+3. Choose **Existing Jupyter Server...**
+4. Enter the server URL: `http://localhost:8888`
+5. Leave the token field **empty** and press Enter
+6. Select kernel **Python 3 (ipykernel)**
+
+**5. Run the notebook**
+
+Run all cells top to bottom. The first cell creates a `SparkSession` connected to `spark://spark-master:7077`.  
+You can verify the connection in the **Spark Master UI** at [http://localhost:8080](http://localhost:8080) — the application will appear under *Running Applications*.
+
+**6. Stop the cluster**
 
 ```bash
 docker compose down
@@ -171,6 +190,6 @@ Steps performed inside the notebook:
 
 ## Notes
 
-- Data files (`data/raw/`, `data/processed/`) are not included in the repository
-- Download the dataset from Kaggle and place `vgsales.csv` in `data/raw/` before running the notebook
-- Parquet output is generated locally after executing the pipeline
+- The dataset `vgsales.csv` is included in `data/raw/`
+- Parquet output is included in `data/processed/videogame_sales_parquet/`
+- Jupyter runs without a token — access via [http://localhost:8888](http://localhost:8888) with no password
