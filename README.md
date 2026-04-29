@@ -1,22 +1,82 @@
 # Spark Data Processing Pipeline
 
-Кластер Apache Spark, развернутый через Docker Compose.
+A data processing and analytics service built with Apache Spark and PySpark.  
+The project processes the **Video Game Sales** dataset — cleaning, aggregating, and saving results as Parquet.
 
-- 1 Spark Master
-- 3 Spark Worker
-- JupyterLab с PySpark
+---
 
-Версия Spark: 3.5.0
+## Tech Stack
 
-## Запуск
+| Tool | Purpose |
+|---|---|
+| Apache Spark 3.5.0 | Distributed data processing engine |
+| PySpark | Python API for Spark |
+| Docker Compose | Container orchestration |
+| JupyterLab | Interactive notebook environment |
+| Parquet | Columnar storage for processed output |
+
+---
+
+## Architecture
+
+```
+JupyterLab (driver)
+      |
+      | spark://spark-master:7077
+      |
+Spark Master
+      |
+ _____|______
+|     |      |
+W1   W2     W3       <- Spark Workers (executors)
+```
+
+- **Spark Master** — manages the cluster, distributes tasks to workers
+- **Spark Workers** — execute tasks and return results to the driver
+- **JupyterLab** — acts as the Spark driver; PySpark code runs here and jobs are submitted to the cluster
+- **data/raw/** — input CSV files (not tracked in git)
+- **data/processed/** — Parquet output after pipeline execution (not tracked in git)
+
+---
+
+## Project Structure
+
+```
+spark-data-processing-pipeline/
+├── data/
+│   ├── raw/                   # Input datasets (not in git)
+│   └── processed/             # Parquet output (not in git)
+├── jobs/
+│   └── test_job.py            # Spark cluster smoke test
+├── notebooks/
+│   └── 01_pyspark_data_processing.ipynb
+├── screenshots/               # Screenshots for the report
+├── docker-compose.yml
+├── .gitignore
+└── README.md
+```
+
+---
+
+## How to Run
+
+**1. Start the cluster**
 
 ```bash
 docker compose up -d
 ```
 
-## Адреса
+**2. Check that all containers are running**
 
-| Сервис | Адрес |
+```bash
+docker compose ps
+```
+
+Expected: 5 containers up — `spark-master`, `spark-worker-1/2/3`, `jupyter`.
+
+**3. Open interfaces**
+
+| Interface | URL |
 |---|---|
 | Spark Master UI | http://localhost:8080 |
 | JupyterLab | http://localhost:8888 |
@@ -24,18 +84,93 @@ docker compose up -d
 | Worker 2 | http://localhost:8082 |
 | Worker 3 | http://localhost:8083 |
 
-## Запуск тестового задания
+**4. Run the notebook**
 
-```bash
-docker cp jobs/test_job.py spark-master:/opt/spark/test_job.py
+Open JupyterLab → `work/` → `01_pyspark_data_processing.ipynb` → Run All.
 
-docker exec spark-master /opt/spark/bin/spark-submit \
-  --master spark://spark-master:7077 \
-  /opt/spark/test_job.py
-```
-
-## Остановка
+**5. Stop the cluster**
 
 ```bash
 docker compose down
 ```
+
+---
+
+## Dataset
+
+**Video Game Sales** — sales data for video games with more than 100,000 copies sold.
+
+Source: [Kaggle — Video Game Sales](https://www.kaggle.com/datasets/gregorut/videogamesales)
+
+| Column | Description |
+|---|---|
+| Rank | Ranking by global sales |
+| Name | Game title |
+| Platform | Platform (PS2, Wii, X360, etc.) |
+| Year | Year of release |
+| Genre | Game genre |
+| Publisher | Publisher name |
+| NA_Sales | Sales in North America (millions) |
+| EU_Sales | Sales in Europe (millions) |
+| JP_Sales | Sales in Japan (millions) |
+| Other_Sales | Sales in other regions (millions) |
+| Global_Sales | Total worldwide sales (millions) |
+
+---
+
+## Processing Pipeline
+
+Steps performed inside the notebook:
+
+1. **Load CSV** — read `vgsales.csv` with inferred schema
+2. **Clean and normalize** — drop nulls, cast types, rename columns
+3. **Total sales by year** — aggregate global sales per release year
+4. **Sales by year / platform / region** — grouped aggregations across NA, EU, JP, Other
+5. **Sales share with Window Functions** — calculate each platform's share within a year using `Window.partitionBy`
+6. **Publisher sales share** — rank publishers by total global sales share
+7. **Total sales per game** — sum all regional columns into one `total_sales` field
+8. **Save as Parquet** — write final DataFrame to `data/processed/videogame_sales_parquet/`
+
+---
+
+## Screenshots
+
+### Spark Cluster UI
+![Spark Cluster UI](screenshots/spark_cluster_ui.png)
+
+### Docker Containers Running
+![Docker Containers](screenshots/docker_containers_running.png)
+
+### SparkSession Connection
+![SparkSession](screenshots/spark_session_connection.png)
+
+### Dataset Preview
+![Dataset Preview](screenshots/dataset_preview.png)
+
+### Data Cleaning — Schema
+![Schema](screenshots/data_cleaning_schema.png)
+
+### Total Sales by Year
+![Sales by Year](screenshots/sales_by_year.png)
+
+### Sales Share — Window Function
+![Window Function](screenshots/sales_share_window_function.png)
+
+### Parquet Output
+![Parquet Result](screenshots/parquet_result.png)
+
+---
+
+## Results
+
+- Final dataset saved in Parquet format at `data/processed/videogame_sales_parquet/`
+- Row count before saving matches row count after reading back from Parquet
+- All transformations performed via PySpark DataFrame API on a distributed Spark cluster
+
+---
+
+## Notes
+
+- Data files (`data/raw/`, `data/processed/`) are not included in the repository
+- Download the dataset from Kaggle and place `vgsales.csv` in `data/raw/` before running the notebook
+- Parquet output is generated locally after executing the pipeline

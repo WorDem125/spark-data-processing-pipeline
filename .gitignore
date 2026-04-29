@@ -1,10 +1,10 @@
 # macOS
 .DS_Store
 
-# Jupyter checkpoints
+# Jupyter
 notebooks/.ipynb_checkpoints/
 
-# Spark logs and temp
+# Spark temp
 spark-warehouse/
 derby.log
 metastore_db/
@@ -14,3 +14,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Data files — not included in the repository
+data/raw/*.csv
+data/raw/*.json
+data/raw/*.parquet
+
+# Processed output — generated locally after running the notebook
+data/processed/*/
