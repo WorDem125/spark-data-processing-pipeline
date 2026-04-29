@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Jupyter checkpoints
+notebooks/.ipynb_checkpoints/
+
+# Spark logs and temp
+spark-warehouse/
+derby.log
+metastore_db/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Raw data (usually large files)
+data/raw/*
+!data/raw/.gitkeep
+
+# Processed data
+data/processed/*
+!data/processed/.gitkeep

@@ -1,0 +1,119 @@
+services:
+
+  # ─── Spark Master ──────────────────────────────────────────────────────────
+  # Главный узел кластера: принимает задачи и раздаёт их worker-узлам.
+  spark-master:
+    image: apache/spark:3.5.0
+    container_name: spark-master
+    user: root
+    command: >
+      /opt/spark/sbin/start-master.sh
+      --host spark-master
+      --port 7077
+      --webui-port 8080
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    ports:
+      - "8080:8080"   # веб-интерфейс Spark Master → открыть http://localhost:8080
+      - "7077:7077"   # внутренний порт кластера (worker-узлы подключаются сюда)
+    networks:
+      - spark-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Spark Worker 1 ────────────────────────────────────────────────────────
+  # Worker-узел: получает задачи от master и запускает executor-процессы.
+  spark-worker-1:
+    image: apache/spark:3.5.0
+    container_name: spark-worker-1
+    user: root
+    command: >
+      /opt/spark/sbin/start-worker.sh
+      spark://spark-master:7077
+      --cores 1
+      --memory 1G
+      --webui-port 8081
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    ports:
+      - "8081:8081"   # веб-интерфейс Worker 1
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    networks:
+      - spark-net
+
+  # ─── Spark Worker 2 ────────────────────────────────────────────────────────
+  spark-worker-2:
+    image: apache/spark:3.5.0
+    container_name: spark-worker-2
+    user: root
+    command: >
+      /opt/spark/sbin/start-worker.sh
+      spark://spark-master:7077
+      --cores 1
+      --memory 1G
+      --webui-port 8081
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    ports:
+      - "8082:8081"   # веб-интерфейс Worker 2
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    networks:
+      - spark-net
+
+  # ─── Spark Worker 3 ────────────────────────────────────────────────────────
+  spark-worker-3:
+    image: apache/spark:3.5.0
+    container_name: spark-worker-3
+    user: root
+    command: >
+      /opt/spark/sbin/start-worker.sh
+      spark://spark-master:7077
+      --cores 1
+      --memory 1G
+      --webui-port 8081
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    ports:
+      - "8083:8081"   # веб-интерфейс Worker 3
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    networks:
+      - spark-net
+
+  # ─── Jupyter Notebook ─────────────────────────────────────────────────────
+  # Интерактивная среда для написания PySpark-кода.
+  # PySpark внутри Jupyter подключается к внешнему кластеру через SparkSession.
+  jupyter:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: jupyter
+    ports:
+      - "8888:8888"   # веб-интерфейс Jupyter → открыть http://localhost:8888
+    environment:
+      - JUPYTER_ENABLE_LAB=yes          # запустит�� JupyterLab вместо классического UI
+      - JUPYTER_TOKEN=                  # о��ключить то��ен (удобно локально)
+      - SPARK_MASTER=spark://spark-master:7077   # удобная переменная для ноутбуков
+      - SPARK_HOME=/usr/local/spark
+      - PYTHONPATH=/usr/local/spark/python:/usr/local/spark/python/lib/pyspark.zip:/usr/local/spark/python/lib/py4j-0.10.9.7-src.zip
+    command: >
+      start-notebook.sh
+      --NotebookApp.token=''
+      --NotebookApp.password=''
+    volumes:
+      - ./notebooks:/home/jovyan/work   # папка с ноутбуками монтируется в контейнер
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    networks:
+      - spark-net
+
+networks:
+  spark-net:
+    driver: bridge
