@@ -1,7 +1,6 @@
 services:
 
-  # ─── Spark Master ──────────────────────────────────────────────────────────
-  # Главный узел кластера: принимает задачи и раздаёт их worker-узлам.
+  # Главный узел кластера. Принимает задачи, распределяет их по worker-узлам.
   spark-master:
     image: apache/spark:3.5.0
     container_name: spark-master
@@ -14,8 +13,8 @@ services:
     environment:
       - SPARK_NO_DAEMONIZE=true
     ports:
-      - "8080:8080"   # веб-интерфейс Spark Master → открыть http://localhost:8080
-      - "7077:7077"   # внутренний порт кластера (worker-узлы подключаются сюда)
+      - "8080:8080"
+      - "7077:7077"
     networks:
       - spark-net
     healthcheck:
@@ -24,8 +23,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Spark Worker 1 ────────────────────────────────────────────────────────
-  # Worker-узел: получает задачи от master и запускает executor-процессы.
+  # Worker-узел 1. Выполняет задачи, полученные от master.
   spark-worker-1:
     image: apache/spark:3.5.0
     container_name: spark-worker-1
@@ -41,14 +39,14 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./data:/home/jovyan/work/data   # тот же путь, что и в Jupyter
+      - ./data:/home/jovyan/work/data
     depends_on:
       spark-master:
         condition: service_healthy
     networks:
       - spark-net
 
-  # ─── Spark Worker 2 ────────────────────────────────────────────────────────
+  # Worker-узел 2.
   spark-worker-2:
     image: apache/spark:3.5.0
     container_name: spark-worker-2
@@ -71,7 +69,7 @@ services:
     networks:
       - spark-net
 
-  # ─── Spark Worker 3 ────────────────────────────────────────────────────────
+  # Worker-узел 3.
   spark-worker-3:
     image: apache/spark:3.5.0
     container_name: spark-worker-3
@@ -94,18 +92,16 @@ services:
     networks:
       - spark-net
 
-  # ─── Jupyter Notebook ─────────────────────────────────────────────────────
-  # Интерактивная среда для написания PySpark-кода.
-  # PySpark внутри Jupyter подключается к внешнему кластеру через SparkSession.
+  # JupyterLab с PySpark. Подключается к кластеру через SparkSession.
   jupyter:
     image: jupyter/pyspark-notebook:spark-3.5.0
     container_name: jupyter
     ports:
-      - "8888:8888"   # веб-интерфейс Jupyter → открыть http://localhost:8888
+      - "8888:8888"
     environment:
-      - JUPYTER_ENABLE_LAB=yes          # запустит�� JupyterLab вместо классического UI
-      - JUPYTER_TOKEN=                  # о��ключить то��ен (удобно локально)
-      - SPARK_MASTER=spark://spark-master:7077   # удобная переменная для ноутбуков
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=
+      - SPARK_MASTER=spark://spark-master:7077
       - SPARK_HOME=/usr/local/spark
       - PYTHONPATH=/usr/local/spark/python:/usr/local/spark/python/lib/pyspark.zip:/usr/local/spark/python/lib/py4j-0.10.9.7-src.zip
     command: >
@@ -113,8 +109,8 @@ services:
       --NotebookApp.token=''
       --NotebookApp.password=''
     volumes:
-      - ./notebooks:/home/jovyan/work        # ноутбуки
-      - ./data:/home/jovyan/work/data        # датасеты: raw/ и processed/
+      - ./notebooks:/home/jovyan/work
+      - ./data:/home/jovyan/work/data
     depends_on:
       spark-master:
         condition: service_healthy

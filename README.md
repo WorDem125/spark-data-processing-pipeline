@@ -1,21 +1,37 @@
-# Spark Cluster — Docker Compose
+# Spark Data Processing Pipeline
 
-Кластер: 1 Spark Master + 3 Spark Worker (bitnami/spark:3.5)
+Кластер Apache Spark, развернутый через Docker Compose.
 
-## Быстрый старт
+- 1 Spark Master
+- 3 Spark Worker
+- JupyterLab с PySpark
+
+Версия Spark: 3.5.0
+
+## Запуск
 
 ```bash
 docker compose up -d
 ```
 
-Веб-интерфейс Master: http://localhost:8080
+## Адреса
+
+| Сервис | Адрес |
+|---|---|
+| Spark Master UI | http://localhost:8080 |
+| JupyterLab | http://localhost:8888 |
+| Worker 1 | http://localhost:8081 |
+| Worker 2 | http://localhost:8082 |
+| Worker 3 | http://localhost:8083 |
 
 ## Запуск тестового задания
 
 ```bash
-docker exec spark-master spark-submit \
+docker cp jobs/test_job.py spark-master:/opt/spark/test_job.py
+
+docker exec spark-master /opt/spark/bin/spark-submit \
   --master spark://spark-master:7077 \
-  /opt/bitnami/spark/jobs/test_job.py
+  /opt/spark/test_job.py
 ```
 
 ## Остановка

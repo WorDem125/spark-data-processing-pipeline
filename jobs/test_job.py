@@ -1,10 +1,9 @@
-"""
-Тестовое PySpark-задание для проверки кластера.
-Запускается через spark-submit из контейнера spark-master.
-"""
+# Тестовое задание для проверки работы Spark-кластера.
+# Запуск: spark-submit --master spark://spark-master:7077 test_job.py
 
+import random
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, avg, sum as _sum
+from pyspark.sql.functions import count, avg, sum as _sum
 
 spark = (
     SparkSession.builder
@@ -15,42 +14,31 @@ spark = (
 
 spark.sparkContext.setLogLevel("WARN")
 
-print("\n" + "=" * 60)
-print("  Spark-кластер работает!")
-print(f"  Версия Spark: {spark.version}")
-print(f"  Приложение: {spark.sparkContext.appName}")
-print(f"  Master URL: {spark.sparkContext.master}")
-print("=" * 60 + "\n")
+print(f"Версия Spark : {spark.version}")
+print(f"Master URL   : {spark.sparkContext.master}")
 
+# Тест 1: агрегация датафрейма
 data = [
-    ("Alice",   "Engineering", 95000),
-    ("Bob",     "Engineering", 88000),
-    ("Carol",   "Marketing",   72000),
-    ("David",   "Marketing",   68000),
-    ("Eve",     "HR",          61000),
-    ("Frank",   "HR",          59000),
-    ("Grace",   "Engineering", 102000),
-    ("Heidi",   "Marketing",   75000),
+    ("Alice",  "Engineering", 95000),
+    ("Bob",    "Engineering", 88000),
+    ("Carol",  "Marketing",   72000),
+    ("David",  "Marketing",   68000),
+    ("Eve",    "HR",          61000),
+    ("Frank",  "HR",          59000),
+    ("Grace",  "Engineering", 102000),
+    ("Heidi",  "Marketing",   75000),
 ]
 
 df = spark.createDataFrame(data, ["name", "department", "salary"])
-
-print("── Исходный датафрейм ──────────────────────────────────────")
 df.show()
 
-print("── Статистика по отделам ───────────────────────────────────")
-(df.groupBy("department")
-   .agg(
-       count("name").alias("employees"),
-       avg("salary").alias("avg_salary"),
-       _sum("salary").alias("total_salary"),
-   )
-   .orderBy("department")
-   .show())
+df.groupBy("department").agg(
+    count("name").alias("employees"),
+    avg("salary").alias("avg_salary"),
+    _sum("salary").alias("total_salary"),
+).orderBy("department").show()
 
-print("── Параллельный подсчёт числа π (метод Монте-Карло) ────────")
-import random
-
+# Тест 2: параллельные вычисления методом Монте-Карло
 NUM_SAMPLES = 1_000_000
 
 def inside(_):
@@ -63,11 +51,7 @@ count_inside = (
     .filter(inside)
     .count()
 )
-pi_estimate = 4.0 * count_inside / NUM_SAMPLES
-print(f"  Оценка числа π ≈ {pi_estimate:.5f}  (точное значение: 3.14159…)\n")
 
-print("=" * 60)
-print("  Тестовое задание выполнено успешно!")
-print("=" * 60 + "\n")
+print(f"Оценка числа pi: {4.0 * count_inside / NUM_SAMPLES:.5f}")
 
 spark.stop()
