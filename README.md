@@ -166,15 +166,6 @@ docker compose down
 ### Предпросмотр датасета
 ![Dataset Preview](screenshots/dataset_preview.png)
 
-### Схема данных после очистки
-![Schema](screenshots/data_cleaning_schema.png)
-
-### Продажи по годам
-![Sales by Year](screenshots/sales_by_year.png)
-
-### Доля продаж — Window Function
-![Window Function](screenshots/sales_share_window_function.png)
-
 ### Результат в формате Parquet
 ![Parquet Result](screenshots/parquet_result.png)
 
