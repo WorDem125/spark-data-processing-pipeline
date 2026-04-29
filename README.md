@@ -1,56 +1,53 @@
 # Spark Data Processing Pipeline
 
-A data processing and analytics service built with Apache Spark and PySpark.  
-The project processes the **Video Game Sales** dataset — cleaning, aggregating, and saving results as Parquet.
+Сервис распределённой обработки и аналитики данных на базе Apache Spark.  
+Проект разворачивается одной командой — кластер, Jupyter и все зависимости подняты в Docker Compose.
 
 ---
 
-## Tech Stack
+## Стек технологий
 
-| Tool | Purpose |
+| Инструмент | Роль |
 |---|---|
-| Apache Spark 3.5.0 | Distributed data processing engine |
-| PySpark | Python API for Spark |
-| Docker Compose | Container orchestration |
-| JupyterLab | Interactive notebook environment |
-| Parquet | Columnar storage for processed output |
+| Apache Spark 3.5.0 | Движок распределённой обработки данных |
+| PySpark | Python API для работы с Spark |
+| Docker Compose | Оркестрация контейнеров |
+| JupyterLab | Среда разработки для PySpark-ноутбуков |
+| Parquet | Колоночный формат хранения обработанных данных |
 
 ---
 
-## Architecture
+## Архитектура кластера
 
 ```
-JupyterLab (driver)
-      |
-      | spark://spark-master:7077
-      |
-Spark Master
-      |
- _____|______
-|     |      |
-W1   W2     W3       <- Spark Workers (executors)
+JupyterLab  (driver — точка входа, здесь пишется и запускается код)
+     |
+     |  spark://spark-master:7077
+     |
+Spark Master  (управляет кластером, распределяет задачи)
+     |
+ ____|____
+|    |    |
+W1  W2   W3   ← Spark Workers (executors — выполняют вычисления)
 ```
 
-- **Spark Master** — manages the cluster, distributes tasks to workers
-- **Spark Workers** — execute tasks and return results to the driver
-- **JupyterLab** — acts as the Spark driver; PySpark code runs here and jobs are submitted to the cluster
-- **data/raw/** — input CSV files
-- **data/processed/** — Parquet output after pipeline execution
+Все компоненты работают в изолированной Docker-сети и видят друг друга по именам сервисов.
 
 ---
 
-## Project Structure
+## Структура проекта
 
 ```
 spark-data-processing-pipeline/
 ├── data/
-│   ├── raw/                   # Input datasets (not in git)
-│   └── processed/             # Parquet output (not in git)
+│   ├── raw/                                    # Исходные данные (CSV)
+│   └── processed/
+│       └── videogame_sales_parquet/            # Результат обработки (Parquet)
 ├── jobs/
-│   └── test_job.py            # Spark cluster smoke test
+│   └── test_job.py                             # Smoke-тест кластера через spark-submit
 ├── notebooks/
-│   └── 01_pyspark_data_processing.ipynb
-├── screenshots/               # Screenshots for the report
+│   └── 01_pyspark_data_processing.ipynb       # Основной ноутбук с пайплайном
+├── screenshots/                                # Скриншоты для отчёта
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md
@@ -58,25 +55,28 @@ spark-data-processing-pipeline/
 
 ---
 
-## How to Run
+## Быстрый старт
 
-**1. Start the cluster**
+### 1. Запустить кластер
 
 ```bash
 docker compose up -d
 ```
 
-**2. Check that all containers are running**
+Команда поднимает 5 контейнеров: Spark Master, три Worker-узла и JupyterLab.  
+При первом запуске Docker скачает образы (~1 ГБ), последующие запуски — мгновенные.
+
+### 2. Убедиться, что всё запущено
 
 ```bash
 docker compose ps
 ```
 
-Expected: 5 containers up — `spark-master`, `spark-worker-1/2/3`, `jupyter`.
+Все контейнеры должны быть в статусе `Up`. Master и Jupyter дополнительно показывают `(healthy)`.
 
-**3. Open interfaces**
+### 3. Открыть интерфейсы
 
-| Interface | URL |
+| Сервис | Адрес |
 |---|---|
 | Spark Master UI | http://localhost:8080 |
 | JupyterLab | http://localhost:8888 |
@@ -84,30 +84,30 @@ Expected: 5 containers up — `spark-master`, `spark-worker-1/2/3`, `jupyter`.
 | Worker 2 | http://localhost:8082 |
 | Worker 3 | http://localhost:8083 |
 
-**4. Connect the notebook to the Jupyter kernel**
+### 4. Подключить ноутбук к ядру Jupyter
 
-**Option A — directly in the browser (JupyterLab)**
+**Вариант А — через браузер (рекомендуется)**
 
-1. Open [http://localhost:8888](http://localhost:8888)
-2. In the file browser on the left, open `work/`
-3. Double-click `01_pyspark_data_processing.ipynb`
-4. The kernel **Python 3 (ipykernel)** starts automatically — no extra steps needed
+1. Открыть [http://localhost:8888](http://localhost:8888) — JupyterLab откроется без пароля
+2. В файловом менеджере слева перейти в папку `work/`
+3. Открыть `01_pyspark_data_processing.ipynb`
+4. Ядро **Python 3 (ipykernel)** запустится автоматически
 
-**Option B — from VS Code**
+**Вариант Б — через VS Code**
 
-1. Open `notebooks/01_pyspark_data_processing.ipynb` in VS Code
-2. Click **Select Kernel** in the top-right corner of the notebook
-3. Choose **Existing Jupyter Server...**
-4. Enter the server URL: `http://localhost:8888`
-5. Leave the token field **empty** and press Enter
-6. Select kernel **Python 3 (ipykernel)**
+1. Открыть файл `notebooks/01_pyspark_data_processing.ipynb` в VS Code
+2. Нажать **Select Kernel** в правом верхнем углу
+3. Выбрать **Existing Jupyter Server...**
+4. Ввести адрес сервера: `http://localhost:8888`
+5. Поле токена оставить **пустым**, нажать Enter
+6. Выбрать ядро **Python 3 (ipykernel)**
 
-**5. Run the notebook**
+### 5. Запустить ноутбук
 
-Run all cells top to bottom. The first cell creates a `SparkSession` connected to `spark://spark-master:7077`.  
-You can verify the connection in the **Spark Master UI** at [http://localhost:8080](http://localhost:8080) — the application will appear under *Running Applications*.
+Запустить все ячейки последовательно сверху вниз.  
+Первая ячейка создаёт `SparkSession` и подключается к кластеру — после её выполнения в Spark Master UI ([http://localhost:8080](http://localhost:8080)) в разделе **Running Applications** появится активное приложение.
 
-**6. Stop the cluster**
+### 6. Остановить кластер
 
 ```bash
 docker compose down
@@ -115,81 +115,81 @@ docker compose down
 
 ---
 
-## Dataset
+## Датасет
 
-**Video Game Sales** — sales data for video games with more than 100,000 copies sold.
+**Video Game Sales** — данные о продажах видеоигр с тиражом более 100 000 копий.
 
-Source: [Kaggle — Video Game Sales](https://www.kaggle.com/datasets/gregorut/videogamesales)
+Источник: [Kaggle — Video Game Sales](https://www.kaggle.com/datasets/gregorut/videogamesales)
 
-| Column | Description |
+| Поле | Описание |
 |---|---|
-| Rank | Ranking by global sales |
-| Name | Game title |
-| Platform | Platform (PS2, Wii, X360, etc.) |
-| Year | Year of release |
-| Genre | Game genre |
-| Publisher | Publisher name |
-| NA_Sales | Sales in North America (millions) |
-| EU_Sales | Sales in Europe (millions) |
-| JP_Sales | Sales in Japan (millions) |
-| Other_Sales | Sales in other regions (millions) |
-| Global_Sales | Total worldwide sales (millions) |
+| Rank | Место в рейтинге по мировым продажам |
+| Name | Название игры |
+| Platform | Платформа (PS2, Wii, X360 и др.) |
+| Year | Год выпуска |
+| Genre | Жанр |
+| Publisher | Издатель |
+| NA_Sales | Продажи в Северной Америке (млн копий) |
+| EU_Sales | Продажи в Европе (млн копий) |
+| JP_Sales | Продажи в Японии (млн копий) |
+| Other_Sales | Продажи в других регионах (млн копий) |
+| Global_Sales | Суммарные мировые продажи (млн копий) |
 
 ---
 
-## Processing Pipeline
+## Пайплайн обработки данных
 
-Steps performed inside the notebook:
+Все шаги реализованы в `notebooks/01_pyspark_data_processing.ipynb`:
 
-1. **Load CSV** — read `vgsales.csv` with inferred schema
-2. **Clean and normalize** — drop nulls, cast types, rename columns
-3. **Total sales by year** — aggregate global sales per release year
-4. **Sales by year / platform / region** — grouped aggregations across NA, EU, JP, Other
-5. **Sales share with Window Functions** — calculate each platform's share within a year using `Window.partitionBy`
-6. **Publisher sales share** — rank publishers by total global sales share
-7. **Total sales per game** — sum all regional columns into one `total_sales` field
-8. **Save as Parquet** — write final DataFrame to `data/processed/videogame_sales_parquet/`
+1. **Загрузка CSV** — чтение `vgsales.csv` с автоматическим выводом схемы
+2. **Очистка и нормализация** — удаление пустых значений, приведение типов
+3. **Суммарные продажи по годам** — агрегация глобальных продаж в разрезе года выпуска
+4. **Продажи по году, платформе и региону** — сгруппированные агрегации по NA, EU, JP, Other
+5. **Доля продаж через Window Functions** — расчёт доли каждой платформы внутри года с использованием `Window.partitionBy`
+6. **Доля продаж по издателю** — ранжирование издателей по доле в суммарных мировых продажах
+7. **Суммарные продажи по игре** — суммирование региональных столбцов в единое поле `total_sales`
+8. **Сохранение в Parquet** — запись итогового датафрейма в `data/processed/videogame_sales_parquet/`
 
 ---
 
-## Screenshots
+## Скриншоты
 
-### Spark Cluster UI
+### Spark Cluster UI — 3 worker-узла активны
 ![Spark Cluster UI](screenshots/spark_cluster_ui.png)
 
-### Docker Containers Running
+### Запущенные контейнеры Docker
 ![Docker Containers](screenshots/docker_containers_running.png)
 
-### SparkSession Connection
+### Подключение SparkSession к кластеру
 ![SparkSession](screenshots/spark_session_connection.png)
 
-### Dataset Preview
+### Предпросмотр датасета
 ![Dataset Preview](screenshots/dataset_preview.png)
 
-### Data Cleaning — Schema
+### Схема данных после очистки
 ![Schema](screenshots/data_cleaning_schema.png)
 
-### Total Sales by Year
+### Продажи по годам
 ![Sales by Year](screenshots/sales_by_year.png)
 
-### Sales Share — Window Function
+### Доля продаж — Window Function
 ![Window Function](screenshots/sales_share_window_function.png)
 
-### Parquet Output
+### Результат в формате Parquet
 ![Parquet Result](screenshots/parquet_result.png)
 
 ---
 
-## Results
+## Результаты
 
-- Final dataset saved in Parquet format at `data/processed/videogame_sales_parquet/`
-- Row count before saving matches row count after reading back from Parquet
-- All transformations performed via PySpark DataFrame API on a distributed Spark cluster
+- Итоговый датасет сохранён в формате Parquet: `data/processed/videogame_sales_parquet/`
+- Количество строк до сохранения совпадает с количеством строк после чтения из Parquet
+- Все трансформации выполнены через PySpark DataFrame API на распределённом Spark-кластере
 
 ---
 
-## Notes
+## Примечания
 
-- The dataset `vgsales.csv` is included in `data/raw/`
-- Parquet output is included in `data/processed/videogame_sales_parquet/`
-- Jupyter runs without a token — access via [http://localhost:8888](http://localhost:8888) with no password
+- Датасет `vgsales.csv` включён в репозиторий: `data/raw/`
+- Обработанные данные в формате Parquet включены в репозиторий: `data/processed/`
+- JupyterLab работает без токена и пароля — доступен по адресу [http://localhost:8888](http://localhost:8888)
